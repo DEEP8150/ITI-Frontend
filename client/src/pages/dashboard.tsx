@@ -8,7 +8,6 @@ import peopleBackground from "/images/material-persons.jpg";
 export default function Dashboard() {
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">
-      {/* Hero Card with Background Image */}
       <Card className="relative mb-8 border border-stone-200 bg-white overflow-hidden">
         <div
           className="relative h-64 bg-cover bg-top bg-no-repeat"

@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,9 +16,12 @@ import Tables from "@/pages/tables";
 import Notifications from "@/pages/notifications";
 import Subscriptions from "@/pages/subscriptions";
 import Documentation from "@/pages/documentation";
-import SignIn from "@/pages/auth/sign-in";
-import SignUp from "@/pages/auth/sign-up";
+import SignIn from "@/pages/auth/Log-in";
+import SignUp from "@/pages/auth/Registeration";
 import NotFound from "@/pages/not-found";
+import ProtectedRoute from "./pages/auth/ProtectedRoute";
+import OtpVerification from "./pages/otpVerication";
+import Logout from "./pages/auth/Logout";
 
 function Layout({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -83,9 +86,20 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
 function Router() {
   return (
     <Routes>
-      <Route path="/" element={
+
+      <Route path="/" element={<Navigate to="/auth/log-in" replace />} />
+
+      <Route path="/auth/log-in" element={<SignIn />} />
+      <Route path="/auth/registration" element={<SignUp />} />
+      <Route path="/auth/logout" element={<Logout />} />
+
+       <Route path="/auth/otp-verification" element={<OtpVerification />} /> 
+
+      <Route path="/dashboard" element={
         <Layout>
+          <ProtectedRoute>
           <Dashboard />
+          </ProtectedRoute>
         </Layout>
       } />
       <Route path="/profile" element={
@@ -113,8 +127,7 @@ function Router() {
           <Documentation />
         </Layout>
       } />
-      <Route path="/auth/sign-in" element={<SignIn />} />
-      <Route path="/auth/sign-up" element={<SignUp />} />
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

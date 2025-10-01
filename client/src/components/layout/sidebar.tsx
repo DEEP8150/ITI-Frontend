@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -42,15 +42,21 @@ const navItems = [
 ];
 
 const authItems = [
+  // {
+  //   title: "LogIn",
+  //   href: "/auth/login-in",
+  //   icon: LogIn,
+  // },
+  // {
+  //   title: "Register",
+  //   href: "/auth/registration",
+  //   icon: UserPlus,
+  // },
+
   {
-    title: "Sign In",
-    href: "/auth/sign-in",
+    title: "Logout",
+    href: "/auth/logout",
     icon: LogIn,
-  },
-  {
-    title: "Sign Up",
-    href: "/auth/sign-up",
-    icon: UserPlus,
   },
 ];
 
@@ -62,7 +68,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Brand Header */}
       <div className="p-6 pb-0 relative z-10 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-stone-900">
-          Material Shadcn
+          ADMIN
         </h1>
         {/* Close button for mobile */}
         {onClose && (
@@ -102,9 +108,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
         {/* Auth Section */}
         <div className="pt-4 border-t border-stone-200 mt-4">
-          <p className="px-4 text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
+          {/* <p className="px-4 text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
             AUTH PAGES
-          </p>
+          </p> */}
           {authItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
@@ -128,7 +134,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
 
         {/* Documentation Link */}
-        <div className="mt-auto pt-4 border-t border-stone-200">
+        {/* <div className="mt-auto pt-4 border-t border-stone-200">
           <NavLink to="/documentation">
             <div
               className={cn(
@@ -142,7 +148,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               Documentation
             </div>
           </NavLink>
-        </div>
+        </div> */}
+        
       </nav>
 
     </aside>
