@@ -18,12 +18,12 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Creative Tim
+                Aura Interact PVT LTD
               </a>{" "}
-              for a better web.
+              for a better web Experience.
             </div>
           </div>
-          <div className="flex space-x-6">
+          {/* <div className="flex space-x-6">
             <a
               href="https://www.creative-tim.com"
               className="text-sm text-stone-600 hover:text-stone-900 transition-colors"
@@ -56,7 +56,7 @@ export function Footer() {
             >
               License
             </a>
-          </div>
+          </div> */}
         </div>
       </div>
     </footer>

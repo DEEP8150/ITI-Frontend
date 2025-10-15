@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import peopleBackground from "/images/material-persons.jpg";
 
+
 export default function Dashboard() {
   return (
     <div className="h-full overflow-y-auto p-6 custom-scrollbar">

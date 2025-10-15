@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import axios, { AxiosError } from "axios";
 import OtpVerification from "@/pages/otpVerication";
+import { useAuth } from "./AuthContext";
 
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -48,6 +49,7 @@ export default function SignIn() {
     rememberMe: false,
   });
 
+  const { setUser } = useAuth(); 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -64,6 +66,13 @@ export default function SignIn() {
       console.log("Login successful!", data);
 
       localStorage.setItem('accessToken', data.user.accessToken);
+
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role as "superAdmin" | "admin" | "instructor" | "student",
+        organization: data.user.organization,
+      });
 
       // setLocation('/dashboard');
       navigate('/dashboard');

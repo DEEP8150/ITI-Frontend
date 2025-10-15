@@ -22,6 +22,16 @@ import NotFound from "@/pages/not-found";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 import OtpVerification from "./pages/otpVerication";
 import Logout from "./pages/auth/Logout";
+import { AuthProvider } from "./pages/auth/AuthContext";
+import InstructorsPage from "./pages/Instructors";
+import StudentsPage from "./pages/Students";
+import CoursesPage from "./pages/course";
+import CreateUserPage from "./pages/AddNewUser";
+import CourseStudentsPage from "./pages/CourseStudentPage";
+import TopicsPage from "./pages/TopicPage";
+import TypesPage from "./pages/TypesPage";
+import ModesPage from "./pages/ModesPage";
+import ProcessesPage from "./pages/ProcessPage";
 
 function Layout({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,12 +41,12 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
     <div className="flex h-screen bg-stone-50 grain-texture">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50 lg:z-10
@@ -45,7 +55,7 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
-      
+
       <main className="flex-1 overflow-y-auto p-3 lg:p-6 relative z-10 flex flex-col">
         {/* Mobile header with burger menu */}
         <div className="lg:hidden mb-4">
@@ -58,7 +68,7 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
             <Menu className="h-6 w-6" />
           </Button>
         </div>
-        
+
         <Card className="flex-1 border border-stone-200 bg-white relative z-20">
           {title && (
             <div className="pt-6 px-3 lg:px-6 pb-4">
@@ -73,11 +83,11 @@ function Layout({ children, title, description }: { children: React.ReactNode; t
         </Card>
         <Footer />
       </main>
-      
+
       {/* Theme Configurator Modal - Outside sidebar for proper z-index */}
-      <ThemeConfigurator 
-        isOpen={themeConfigOpen} 
-        onClose={() => setThemeConfigOpen(false)} 
+      <ThemeConfigurator
+        isOpen={themeConfigOpen}
+        onClose={() => setThemeConfigOpen(false)}
       />
     </div>
   );
@@ -93,12 +103,12 @@ function Router() {
       <Route path="/auth/registration" element={<SignUp />} />
       <Route path="/auth/logout" element={<Logout />} />
 
-       <Route path="/auth/otp-verification" element={<OtpVerification />} /> 
+      <Route path="/auth/otp-verification" element={<OtpVerification />} />
 
       <Route path="/dashboard" element={
         <Layout>
           <ProtectedRoute>
-          <Dashboard />
+            <Dashboard />
           </ProtectedRoute>
         </Layout>
       } />
@@ -107,6 +117,47 @@ function Router() {
           <Profile />
         </Layout>
       } />
+      <Route path="/instructors" element={
+        <Layout title="Instructors" description="List of all instructors">
+          <InstructorsPage />
+        </Layout>
+      } />
+      <Route path="/students" element={
+        <Layout title="Students" description="List of all students">
+          <StudentsPage />
+        </Layout>
+      } />
+      <Route path="/courses" element={
+        <Layout title="Courses" description="List of all courses">
+          <CoursesPage />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/topics" element={
+        <Layout title="Topic" description="">
+          <TopicsPage />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/topics/:topicId/types" element={
+        <Layout title="Types" description="">
+          <TypesPage />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/topics/:topicId/types/:typeId/modes" element={
+        <Layout title="Modes" description="">
+          <ModesPage />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/topics/:topicId/types/:typeId/modes" element={
+        <Layout title="Modes" description="">
+          <ModesPage />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/topics/:topicId/types/:typeId/modes/:modeId/processes" element={
+        <Layout title="Processes" description="">
+          <ProcessesPage />
+        </Layout>
+      } />
+
       <Route path="/tables" element={
         <Layout title="Tables" description="Browse and manage data across different views">
           <Tables />
@@ -115,6 +166,11 @@ function Router() {
       <Route path="/notifications" element={
         <Layout title="Notifications" description="Stay updated with your latest alerts and messages">
           <Notifications />
+        </Layout>
+      } />
+      <Route path="/courses/:courseId/students" element={
+        <Layout title="course" description="">
+          <CourseStudentsPage />
         </Layout>
       } />
       <Route path="/subscriptions" element={
@@ -127,7 +183,8 @@ function Router() {
           <Documentation />
         </Layout>
       } />
-      
+
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -138,8 +195,10 @@ function App() {
     <HashRouter>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <AuthProvider>
+            <Toaster />
+            <Router />
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </HashRouter>

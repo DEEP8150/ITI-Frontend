@@ -37,7 +37,7 @@ export default function OtpVerification() {
     const initialEmail = query.get("email") || "";
 
     const [otp, setOtp] = useState("");
-    const [email, setEmail] = useState(initialEmail); // Pre-fill from query param if available
+    const [email, setEmail] = useState(initialEmail); 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 

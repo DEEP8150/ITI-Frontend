@@ -1,16 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@/pages/auth/AuthContext";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  User, 
-  Table, 
-  Bell,
-  CreditCard,
-  BookOpen,
-  LogIn, 
-  UserPlus,
-  X
-} from "lucide-react";
+import { LayoutDashboard, User, Table, Bell, CreditCard, BookOpen, LogIn, UserPlus, X, Notebook, PersonStandingIcon, PersonStanding, GraduationCap, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -19,26 +10,42 @@ const navItems = [
     href: "/dashboard",
     icon: LayoutDashboard,
   },
+  // {
+  //   title: "Tables",
+  //   href: "/tables",
+  //   icon: Table,
+  // },
+  // {
+  //   title: "Add New User",
+  //   href: "/addnewUser",
+  //   icon: Plus,
+  // },
   {
-    title: "Profile",
-    href: "/profile",
-    icon: User,
+    title: "Instructors",
+    href: "/instructors",
+    icon: PersonStanding,
   },
   {
-    title: "Tables",
-    href: "/tables",
-    icon: Table,
+    title: "Students",
+    href: "/students",
+    icon: GraduationCap,
+  },
+  {
+    title: "Courses",
+    href: "/courses",
+    icon: Notebook,
   },
   {
     title: "Notifications",
     href: "/notifications",
     icon: Bell,
   },
-  {
-    title: "Subscriptions",
-    href: "/subscriptions",
-    icon: CreditCard,
-  },
+  // {
+  //   title: "Subscriptions",
+  //   href: "/subscriptions",
+  //   icon: CreditCard,
+  // },
+
 ];
 
 const authItems = [
@@ -52,7 +59,11 @@ const authItems = [
   //   href: "/auth/registration",
   //   icon: UserPlus,
   // },
-
+  {
+    title: "Profile",
+    href: "/profile",
+    icon: User,
+  },
   {
     title: "Logout",
     href: "/auth/logout",
@@ -60,15 +71,40 @@ const authItems = [
   },
 ];
 
+
+
+
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
+  const { user } = useAuth();
+  console.log("auth user:", user)
+  const userRole = user?.role || "Guest";
+
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (userRole === "student") {
+      // Hide both Instructors and Students pages for students
+      return item.href !== "/instructors" && item.href !== "/students";
+    }
+
+    if (userRole === "instructor") {
+      // Instructors can see Students, but hide Instructors page
+      return item.href !== "/instructors";
+    }
+
+    // SuperAdmin and Admin see all pages
+    return true;
+  });
+
+
+  console.log("User Role in Sidebar:", userRole);
 
   return (
     <aside className="w-60 bg-white lg:bg-transparent flex flex-col relative z-10 h-full border-r border-stone-200 lg:border-0">
       {/* Brand Header */}
       <div className="p-6 pb-0 relative z-10 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-stone-900">
-          ADMIN
+          {userRole.toUpperCase()}
         </h1>
         {/* Close button for mobile */}
         {onClose && (
@@ -85,10 +121,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 relative z-10">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
-          
+
           return (
             <NavLink key={item.href} to={item.href}>
               <div
@@ -114,7 +150,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           {authItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
-            
+
             return (
               <NavLink key={item.href} to={item.href}>
                 <div
@@ -149,7 +185,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             </div>
           </NavLink>
         </div> */}
-        
+
       </nav>
 
     </aside>
