@@ -66,8 +66,8 @@ export const ordersOverview = [
 export const projectsData: ProjectData[] = [
   {
     id: "1",
-    name: "Material XD Version",
-    company: "Material XD Version",
+    name: "Welding",
+    company: "Mig welding",
     icon: "palette",
     iconColor: "bg-gray-900 text-white",
     members: [

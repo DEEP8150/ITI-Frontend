@@ -10,6 +10,10 @@ import { useToast } from "@/hooks/use-toast"
 import { useForm } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { uploadImage } from "@/utilis/UploadImage"
+import { axiosByRole } from "@/utilis/apiByRole"
+import { Card } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreVertical } from "lucide-react"
 
 type Instructor = {
     _id: string
@@ -33,6 +37,8 @@ type Course = {
     isActive: boolean
     totalStudent?: number
     image?: string
+    imageUrl?: string;
+    fileKey?: string;
 }
 
 type FormValues = {
@@ -42,7 +48,7 @@ type FormValues = {
     image?: File | null
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export default function CoursesPage() {
     const [courses, setCourses] = useState<Course[]>([])
@@ -54,6 +60,7 @@ export default function CoursesPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [createImagePreview, setCreateImagePreview] = useState<string | null>(null)
     const [updateImagePreview, setUpdateImagePreview] = useState<string | null>(null)
+    const [role, setRole] = useState<string>("");
 
     const { toast } = useToast()
     const navigate = useNavigate()
@@ -67,6 +74,11 @@ export default function CoursesPage() {
     })
 
     useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            setRole(decoded.role);
+        }
         fetchCourses()
         fetchInstructors()
     }, [])
@@ -74,11 +86,18 @@ export default function CoursesPage() {
     const fetchCourses = async () => {
         try {
             const token = localStorage.getItem("accessToken")
-            const res = await axios.get(`${BASE_URL}/users/Courses`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            const coursesData: Course[] = res?.data?.courses || []
-            setCourses(coursesData)
+            if (!token) {
+                console.error("No token — user not logged in");
+                return;
+            }
+
+            const role = JSON.parse(atob(token.split('.')[1])).role;
+
+            const api = axiosByRole(role, token);
+
+            const res = await api.get(`/Courses`);
+
+            setCourses(res?.data?.courses || [])
         } catch (err) {
             console.error("Error fetching courses", err)
             setCourses([])
@@ -87,57 +106,67 @@ export default function CoursesPage() {
         }
     }
 
-
-    const handleImageUpload = async (courseId: string, file: File) => {
-        try {
-            const formData = new FormData()
-            formData.append("image", file)
-            formData.append("courseId", courseId) // send courseId to identify course
-
-            const token = localStorage.getItem("accessToken")
-            await axios.post(`${BASE_URL}/users/image-upload`, formData, {
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-            })
-            toast({ title: "Image Uploaded" })
-            fetchCourses()
-        } catch (err: any) {
-            toast({
-                title: "Error",
-                description: err.response?.data?.message || "Failed to upload image",
-                variant: "destructive",
-            })
-        }
-    }
-
-
     const fetchInstructors = async () => {
         try {
-            const token = localStorage.getItem("accessToken")
-            const res = await axios.get(`${BASE_URL}/users/Users?type=instructor`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            setInstructors(res.data)
-        } catch (err) {
-            console.error("Failed to fetch instructors", err)
-        }
-    }
+            const token = localStorage.getItem("accessToken");
+            if (!token) return;
 
-    // ------------------ Create Course ------------------
+
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            const role = decoded.role;
+
+            //here req is going to user not admin/instructor/student later i will check
+            const api = axiosByRole(role, token);
+            const res = await api.get(`/users?role=instructor`);
+
+            setInstructors(res.data.users);
+        } catch (err) {
+            console.error("Failed to fetch instructors", err);
+        }
+    };
+
+    // ------------------ Update Course ------------------
+
+
+
     const onSubmit = async (data: FormValues) => {
         try {
             const token = localStorage.getItem("accessToken");
-            const formData = new FormData();
-            formData.append("title", data.title);
-            formData.append("description", data.description);
-            data.instructors.forEach(id => formData.append("instructors[]", id));
-            if (data.image) formData.append("image", data.image);
+            if (!token) {
+                toast({ title: "Not authenticated", variant: "destructive" });
+                return;
+            }
 
-            await axios.post(`${BASE_URL}/admin/createCourse`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data", 
-                },
-            });
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            const role = decoded.role;
+
+
+            const api = axiosByRole(role, token);
+
+            let finalImageUrl: string | undefined;
+            let finalFileKey: string | undefined;
+
+
+            if (data.image) {
+                const { fileUrl, fileKey } = await uploadImage(data.image);
+                finalImageUrl = fileUrl;
+                finalFileKey = fileKey;
+            }
+
+
+            const requestBody: any = {
+                title: data.title,
+                description: data.description,
+                instructor: data.instructors,
+                fileKey: finalFileKey,
+            };
+
+
+            const res = await api.post(`/createCourse`, requestBody);
+
+            const newCourse = res.data.course;
+            setCourses((prev) => [...prev, newCourse]);
+            if (newCourse.image) setCreateImagePreview(newCourse.image);
 
             toast({ title: "Course Created" });
             setOpen(false);
@@ -153,7 +182,7 @@ export default function CoursesPage() {
         }
     };
 
-    // ------------------ Update Course ------------------
+
     const handleUpdateClick = (course: Course) => {
         setSelectedCourse(course)
         updateForm.reset({
@@ -162,35 +191,55 @@ export default function CoursesPage() {
             instructors: course.instructor.map((i) => i._id),
             image: null,
         })
-        setUpdateImagePreview(course.image ? `${BASE_URL}${course.image}` : null)
+        setUpdateImagePreview(course.imageUrl || course.image || null);
         setUpdateDialogOpen(true)
     }
 
     const onUpdateSubmit = async (data: FormValues) => {
-        if (!selectedCourse) return
+        if (!selectedCourse) return;
         try {
-            const token = localStorage.getItem("accessToken")
-            const formData = new FormData()
-            formData.append("title", data.title)
-            formData.append("description", data.description)
-            data.instructors.forEach((id) => formData.append("instructors[]", id))
-            if (data.image) formData.append("image", data.image)
+            const token = localStorage.getItem("accessToken");
+            if (!token) {
+                toast({ title: "Not authenticated", variant: "destructive" });
+                return;
+            }
 
-            await axios.patch(`${BASE_URL}/admin/courses/${selectedCourse._id}`, formData, {
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-            })
-            toast({ title: "Course Updated" })
-            setUpdateDialogOpen(false)
-            setUpdateImagePreview(null)
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            const role = decoded.role;
+
+            const api = axiosByRole(role, token);
+
+            let finalImageUrl = selectedCourse.image;
+            let finalFileKey = selectedCourse.fileKey;
+
+            if (data.image) {
+                const { fileUrl, fileKey } = await uploadImage(data.image);
+                finalImageUrl = fileUrl;
+                finalFileKey = fileKey;
+            }
+
+            const requestBody: any = {
+                title: data.title,
+                description: data.description,
+                instructor: data.instructors,
+                fileKey: finalFileKey,
+            };
+
+            await api.patch(`/courses/${selectedCourse._id}`, requestBody);
+
+            toast({ title: "Course Updated" });
+            setUpdateDialogOpen(false);
+            setUpdateImagePreview(null);
             fetchCourses()
         } catch (err: any) {
             toast({
                 title: "Error",
                 description: err.response?.data?.message || "Failed to update course",
                 variant: "destructive",
-            })
+            });
         }
-    }
+    };
+
 
     // ------------------ Delete / Retrieve ------------------
     const handleDeleteClick = (course: Course) => {
@@ -199,263 +248,313 @@ export default function CoursesPage() {
     }
 
     const onDeleteConfirm = async () => {
-        if (!selectedCourse) return
+        if (!selectedCourse) return;
         try {
-            const token = localStorage.getItem("accessToken")
-            await axios.patch(`${BASE_URL}/admin/softDeleteCourses/${selectedCourse._id}`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            toast({ title: "Course Deleted" })
-            setDeleteDialogOpen(false)
-            fetchCourses()
+            const token = localStorage.getItem("accessToken");
+            if (!token) {
+                toast({ title: "Not authenticated", variant: "destructive" });
+                return;
+            }
+
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            const role = decoded.role;
+
+            const api = axiosByRole(role, token);
+
+            await api.patch(`/softDeleteCourses/${selectedCourse._id}`, {});
+
+            toast({ title: "Course Deleted" });
+            setDeleteDialogOpen(false);
+            fetchCourses();
         } catch (err: any) {
             toast({
                 title: "Error",
                 description: err.response?.data?.message || "Failed to delete course",
                 variant: "destructive",
-            })
+            });
         }
-    }
+    };
+
 
     const onRetrieveConfirm = async (course: Course) => {
         try {
-            const token = localStorage.getItem("accessToken")
-            await axios.patch(`${BASE_URL}/admin/restoreCourse/${course._id}`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            toast({ title: "Course Retrieved" })
-            fetchCourses()
+            const token = localStorage.getItem("accessToken");
+            if (!token) {
+                toast({ title: "Not authenticated", variant: "destructive" });
+                return;
+            }
+
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            const role = decoded.role;
+
+            const api = axiosByRole(role, token);
+
+            await api.patch(`/restoreCourse/${course._id}`, {});
+
+            toast({ title: "Course Retrieved" });
+            fetchCourses();
         } catch (err: any) {
             toast({
                 title: "Error",
                 description: err.response?.data?.message || "Failed to retrieve course",
                 variant: "destructive",
-            })
+            });
         }
-    }
+    };
+
 
     if (loading) return <p>Loading...</p>
 
     return (
-        <div className="p-4">
+        <div className="p-1">
             {/* ------------------ Create Course Dialog ------------------ */}
-            <div className="flex justify-end mb-4">
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>Create New Course</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle>Create New Course</DialogTitle>
-                        </DialogHeader>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                <FormField
-                                    control={form.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Title</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} placeholder="Course Title" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Description</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} placeholder="Course Description" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* ------------------ Image Upload ------------------ */}
-                                <FormField
-                                    control={form.control}
-                                    name="image"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Course Image</FormLabel>
-                                            <div className="flex items-center gap-4">
-                                                {createImagePreview ? (
-                                                    <img
-                                                        src={createImagePreview}
-                                                        alt="Course"
-                                                        className="w-24 h-24 object-cover rounded cursor-pointer border"
-                                                        onClick={() => document.getElementById("createImageInput")?.click()}
-                                                    />
-                                                ) : (
-                                                    <div
-                                                        className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
-                                                        onClick={() => document.getElementById("createImageInput")?.click()}
-                                                    >
-                                                        Upload
-                                                    </div>
-                                                )}
-                                                {createImagePreview && (
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setCreateImagePreview(null)
-                                                            form.setValue("image", null)
-                                                        }}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                )}
-                                            </div>
-                                            <input
-                                                type="file"
-                                                id="createImageInput"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0]
-                                                    if (file) {
-                                                        setCreateImagePreview(URL.createObjectURL(file))
-                                                        form.setValue("image", file)
-                                                    }
-                                                }}
-                                            />
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <div className="flex justify-end gap-2">
-                                    <DialogClose asChild>
-                                        <Button variant="outline">Cancel</Button>
-                                    </DialogClose>
-                                    <Button type="submit">Create</Button>
-                                </div>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            {/* ------------------ Courses Table ------------------ */}
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Sr. No.</TableHead>
-                        <TableHead>Image</TableHead>
-                        <TableHead>Courses</TableHead>
-                        <TableHead>Instructor</TableHead>
-                        <TableHead>Students</TableHead>
-                        <TableHead>Actions</TableHead>
-                        <TableHead>Status</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {courses.map((c, index) => (
-                        <TableRow key={c._id}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>
-                                {c.image ? (
-                                    <img
-                                        src={`${BASE_URL}${c.image}`}
-                                        alt={c.title}
-                                        className="w-12 h-12 object-cover rounded cursor-pointer"
-                                        onClick={() => document.getElementById(`upload-${c._id}`)?.click()}
+            {role !== "student" && (
+                <div className="flex justify-end mb-1">
+                    <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                            <Button>Create New Course</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                                <DialogTitle>Create New Course</DialogTitle>
+                            </DialogHeader>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">-
+                                    <FormField
+                                        control={form.control}
+                                        name="title"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Title</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} placeholder="Course Title" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
-                                ) : (
-                                    <div
-                                        className="w-12 h-12 bg-gray-200 flex items-center justify-center rounded text-xs cursor-pointer"
-                                        onClick={() => document.getElementById(`upload-${c._id}`)?.click()} // only open file picker
-                                    >
-                                        Upload
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    id={`upload-${c._id}`}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
+                                    <FormField
+                                        control={form.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} placeholder="Course Description" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                                        try {
-                                            // Use the centralized uploadImage utility
-                                            const imageUrl = await uploadImage(c._id, file);
-                                            if (imageUrl) {
-                                                // Update the course's image locally without refetching all courses
+                                    {/* ------------------ Image Upload ------------------ */}
+                                    <FormField
+                                        control={form.control}
+                                        name="image"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Course Image</FormLabel>
+                                                <div className="flex items-center gap-4">
+                                                    {createImagePreview ? (
+                                                        <img
+                                                            src={createImagePreview}
+                                                            alt="Course"
+                                                            className="w-24 h-24 object-cover rounded cursor-pointer border"
+                                                            onClick={() => document.getElementById("createImageInput")?.click()}
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
+                                                            onClick={() => document.getElementById("createImageInput")?.click()}
+                                                        >
+                                                            Upload
+                                                        </div>
+                                                    )}
+                                                    {createImagePreview && (
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setCreateImagePreview(null)
+                                                                form.setValue("image", null)
+                                                            }}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    id="createImageInput"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) {
+                                                            setCreateImagePreview(URL.createObjectURL(file))
+                                                            form.setValue("image", file)
+                                                        }
+                                                    }}
+                                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="flex justify-end gap-2">
+                                        <DialogClose asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                        </DialogClose>
+                                        <Button type="submit">Create</Button>
+                                    </div>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            )}
+
+            {/* ------------------ Courses Grid ------------------ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-1 ml-4">
+                {courses && courses.length > 0 ? (
+                    courses.map((course) => (
+                        <Card
+                            key={course._id}
+                            className="cursor-pointer hover:shadow-lg transition relative"
+                            onClick={() => navigate(`/courses/${course._id}/topics`)}
+                        >
+                            <div className="p-4">
+                                <div className="relative">
+                                    {course.imageUrl ? (
+                                        <img
+                                            src={course.imageUrl}
+                                            alt={course.title}
+                                            className={`w-full h-60 object-cover rounded-md mb-4 ${role !== "student" ? "cursor-pointer hover:opacity-80" : "cursor-default opacity-100"
+                                                }`}
+                                            // onClick={(e) => {
+                                            //     e.stopPropagation();
+                                            //     if (role !== "student") {
+                                            //         document.getElementById(`upload-${course._id}`)?.click();
+                                            //     }
+                                            // }}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-full h-60 bg-gray-200 flex items-center justify-center rounded-md mb-4 text-sm cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (role !== "student") {
+                                                    document.getElementById(`upload-${course._id}`)?.click();
+                                                }
+                                            }}
+                                        >
+                                            Upload Image
+                                        </div>
+                                    )}
+
+                                    {/* hidden file input for image upload */}
+                                    <input
+                                        type="file"
+                                        id={`upload-${course._id}`}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+
+                                            try {
+                                                const { fileUrl, fileKey } = await uploadImage(file);
                                                 setCourses((prev) =>
-                                                    prev.map((course) =>
-                                                        course._id === c._id ? { ...course, image: imageUrl } : course
+                                                    prev.map((c) =>
+                                                        c._id === course._id ? { ...c, imageUrl: fileUrl, fileKey } : c
                                                     )
                                                 );
+                                                toast({ title: "Image Uploaded" });
+                                            } catch (err: any) {
+                                                toast({
+                                                    title: "Upload failed",
+                                                    description: err?.response?.data?.message || "Failed to upload image",
+                                                    variant: "destructive",
+                                                });
                                             }
-                                        } catch (err: any) {
-                                            toast({
-                                                title: "Upload failed",
-                                                description: err.response?.data?.message || "Failed to upload image",
-                                                variant: "destructive",
-                                            });
-                                        }
-                                    }}
-                                />
+                                        }}
+                                    />
 
-                            </TableCell>
-                            <TableCell>
-                                <button
-                                    className=" hover:underline"
-                                    onClick={() => navigate(`/courses/${c._id}/topics`)}
-                                >
-                                    {c.title}
-                                </button>
-                            </TableCell>
-                            <TableCell>
-                                {c.instructor.map((i) => (
-                                    <div key={i._id}>
-                                        {i.firstName} {i.lastName}
+                                    {/* NOTE: move dropdown to the right of instructor name (we render it below) */}
+                                </div>
+
+                                {/* Title & description */}
+                                <h2 className="text-lg font-semibold mb-2">{course.title}</h2>
+                                <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
+
+                                {/* Status + Instructor + actions (three dots) */}
+                                <div className="mt-3 flex items-center justify-between">
+                                    <span
+                                        className={`text-xs font-medium px-2 py-1 rounded-full ${course.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                            }`}
+                                    >
+                                        {course.isActive ? "Active" : "Inactive"}
+                                    </span>
+
+                                    {/* Instructor + three dots aligned horizontally */}
+                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        {course.instructor && course.instructor.length > 0 ? (
+                                            <p className="text-xs text-gray-500">
+                                                {course.instructor[0].firstName} {course.instructor[0].lastName}
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-gray-400 italic">No instructor</p>
+                                        )}
+
+                                        {/* Only show actions for non-students (same as before) */}
+                                        {role !== "student" && (
+                                            <div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-gray-100">
+                                                            <MoreVertical className="h-4 w-4 text-gray-600" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+
+                                                    <DropdownMenuContent align="end">
+                                                        {/* View -> navigate to students page (same as your table View button) */}
+                                                        <DropdownMenuItem onClick={() => navigate(`/courses/${course._id}/students`)}>
+                                                            View
+                                                        </DropdownMenuItem>
+
+                                                        {/* Update -> reuse your existing handler that opens update modal */}
+                                                        <DropdownMenuItem onClick={() => handleUpdateClick(course)}>
+                                                            Update
+                                                        </DropdownMenuItem>
+
+                                                        {/* Soft Delete or Retrieve -> reuse your existing handlers */}
+                                                        {course.isActive ? (
+                                                            <DropdownMenuItem onClick={() => handleDeleteClick(course)}>
+                                                                Soft Delete
+                                                            </DropdownMenuItem>
+                                                        ) : (
+                                                            <DropdownMenuItem onClick={() => onRetrieveConfirm(course)}>
+                                                                Retrieve
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
-                            </TableCell>
-                            <TableCell>{c.totalStudent ?? 0}</TableCell>
-                            <TableCell className="flex gap-2">
-                                <Button size="sm" onClick={() => navigate(`/courses/${c._id}/students`)}>
-                                    View
-                                </Button>
-                                {c.isActive ? (
-                                    <>
-                                        <Button size="sm" onClick={() => handleUpdateClick(c)}>
-                                            Update
-                                        </Button>
-                                        <Button size="sm" variant="destructive" onClick={() => handleDeleteClick(c)}>
-                                            Soft Delete
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <Button size="sm" variant="secondary" onClick={() => onRetrieveConfirm(c)}>
-                                        Retrieve
-                                    </Button>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${c.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                        }`}
-                                >
-                                    {c.isActive ? "Active" : "Inactive"}
-                                </span>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                                </div>
+                            </div>
+                        </Card>
+                    ))
+                ) : (
+                    <p className="text-center text-gray-500 col-span-full">No courses found.</p>
+                )}
+            </div>
+
+
 
             {/* ------------------ Update Dialog ------------------ */}
+
             <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
@@ -489,33 +588,35 @@ export default function CoursesPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={updateForm.control}
-                                name="instructors"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Instructors</FormLabel>
-                                        <Select
-                                            value={field.value[0]}
-                                            onValueChange={(value) => field.onChange([value])}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select Instructor" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {instructors.map((i) => (
-                                                    <SelectItem key={i._id} value={i._id}>
-                                                        {i.firstName} {i.lastName}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {role !== "instructor" && (
+                                <FormField
+                                    control={updateForm.control}
+                                    name="instructors"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Instructors</FormLabel>
+                                            <Select
+                                                value={field.value?.[0]}
+                                                onValueChange={(value) => field.onChange([value])}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select Instructor" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {instructors.map((i) => (
+                                                        <SelectItem key={i._id} value={i._id}>
+                                                            {i.firstName} {i.lastName}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             {/* ------------------ Image Upload ------------------ */}
                             <FormField

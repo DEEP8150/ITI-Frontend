@@ -1,76 +1,95 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 type ProfileFormValues = {
   firstName: string;
   lastName: string;
+  email: string;
   phone: string;
   bio: string;
+};
+
+type JWTPayload = {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
 };
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   const form = useForm<ProfileFormValues>({
     defaultValues: {
       firstName: "",
       lastName: "",
+      email: "",
       phone: "+91 ",
       bio: "",
     },
   });
 
-  
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const res = await axios.get(`${BASE_URL}/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No token found");
 
-        const user = res.data.data;
-        form.reset({
-          firstName: user.firstName || "",
-          lastName: user.lastName || "",
-          phone: user.phone ? `+91 ${user.phone.replace(/^(\+91\s)?/, "")}` : "+91 ",
-          bio: "",
-        });
-      } catch (err) {
-        console.error("Failed to fetch profile", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const decoded = jwtDecode<JWTPayload>(token);
 
-    fetchProfile();
-  }, []);
+      form.reset({
+        firstName: decoded.firstName || "",
+        lastName: decoded.lastName || "",
+        email: decoded.email || "",
+        phone: "+91 ",
+        bio: "",
+      });
+    } catch (err) {
+      console.error("Failed to decode token:", err);
+      toast({ title: "Session expired. Please log in again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [form, toast]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       const token = localStorage.getItem("accessToken");
-
       const phoneWithoutCode = data.phone.replace("+91 ", "").trim();
+
+      const { email, ...updatableData } = data;
 
       await axios.patch(
         `${BASE_URL}/users/profile`,
-        { ...data, phone: phoneWithoutCode },
+        { ...updatableData, phone: phoneWithoutCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast({ title: "Profile updated successfully!" });
     } catch (err: any) {
       console.error("Error updating profile:", err);
-      toast({ title: "Error updating profile", description: err.response?.data?.message, variant: "destructive" });
+      toast({
+        title: "Error updating profile",
+        description: err.response?.data?.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -112,6 +131,20 @@ export default function ProfilePage() {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled className="bg-gray-100 cursor-not-allowed" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

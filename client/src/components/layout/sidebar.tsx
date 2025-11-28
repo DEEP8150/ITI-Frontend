@@ -36,10 +36,15 @@ const navItems = [
     icon: Notebook,
   },
   {
-    title: "Notifications",
-    href: "/notifications",
-    icon: Bell,
+    title: "Performance",
+    href: "/performance",
+    icon: Notebook,
   },
+  // {
+  //   title: "Notifications",
+  //   href: "/notifications",
+  //   icon: Bell,
+  // },
   // {
   //   title: "Subscriptions",
   //   href: "/subscriptions",
@@ -82,20 +87,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
 
   const filteredNavItems = navItems.filter((item) => {
-    if (userRole === "student") {
-      // Hide both Instructors and Students pages for students
-      return item.href !== "/instructors" && item.href !== "/students";
-    }
+  if (userRole === "student") {
+    // Students can see Performance but not Instructors or Students pages
+    return item.href !== "/instructors" && item.href !== "/students";
+  }
 
-    if (userRole === "instructor") {
-      // Instructors can see Students, but hide Instructors page
-      return item.href !== "/instructors";
-    }
-
-    // SuperAdmin and Admin see all pages
-    return true;
-  });
-
+  if (["instructor", "admin", "superAdmin"].includes(userRole)) {
+    // Hide Performance for instructor, admin, and superAdmin
+    return item.href !== "/performance";
+  }
+  return true;
+});
 
   console.log("User Role in Sidebar:", userRole);
 

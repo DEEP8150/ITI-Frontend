@@ -41,11 +41,11 @@ export function ProjectsTable() {
       <CardHeader className="border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900">Projects</CardTitle>
-            <div className="text-sm text-gray-500 flex items-center mt-1">
+            <CardTitle className="text-lg font-semibold text-gray-900">Courses</CardTitle>
+            {/* <div className="text-sm text-gray-500 flex items-center mt-1">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2" />
               30 done this month
-            </div>
+            </div> */}
           </div>
           <Button variant="ghost" size="sm">
             <MoreVertical className="w-4 h-4 text-gray-400" />
@@ -59,13 +59,13 @@ export function ProjectsTable() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  COMPANIES
+                  courses
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  MEMBERS
+                  Topic Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  BUDGET
+                  Process
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
                   COMPLETION

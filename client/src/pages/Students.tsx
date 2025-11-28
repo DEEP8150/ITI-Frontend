@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell,} from "@/components/ui/table";
-import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogClose,DialogTrigger,} from "@/components/ui/dialog";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogTrigger, } from "@/components/ui/dialog";
 import CreateUserPage from "./AddNewUser";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 type User = {
     _id: string;
@@ -19,6 +20,7 @@ export default function StudentsPage() {
     const [students, setStudents] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false); // dialog open state
+    const navigate = useNavigate();
 
     const fetchStudents = async () => {
         try {
@@ -26,7 +28,7 @@ export default function StudentsPage() {
             const res = await axios.get(`${BASE_URL}/users/Users?type=student`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            console.log("data of stud",res.data)
+            console.log("data of stud", res.data)
             setStudents(res.data);
         } catch (err) {
             console.error(err);
@@ -43,9 +45,9 @@ export default function StudentsPage() {
     if (loading) return <p>Loading...</p>;
 
     return (
-        <div className="p-4">
+        <div className="">
             {/* Top Bar */}
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end ">
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
                         <Button>Add Student</Button>
@@ -56,7 +58,7 @@ export default function StudentsPage() {
                         </DialogHeader>
                         <CreateUserPage
                             defaultRole="student"
-                            onSuccess={fetchStudents} // refresh list after adding
+                            onSuccess={fetchStudents}
                         />
                     </DialogContent>
 
@@ -73,11 +75,16 @@ export default function StudentsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {students.map((student,index) => (
+                    {students.map((student, index) => (
                         <TableRow key={student._id}>
                             <TableCell>{index + 1}</TableCell>
                             <TableCell>
-                                {student.firstName} {student.lastName}
+                                <button
+                                    onClick={() => navigate(`/students/${student._id}`, { state: student })}
+                                    className="text-blue-600 hover:underline font-medium cursor-pointer"
+                                >
+                                    {student.firstName} {student.lastName}
+                                </button>
                             </TableCell>
                             <TableCell>{student.email}</TableCell>
                         </TableRow>

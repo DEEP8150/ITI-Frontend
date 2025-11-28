@@ -3,14 +3,18 @@ import axios from "axios";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useParams, useNavigate } from "react-router-dom";
+import { axiosByRole } from "@/utilis/apiByRole";
+import { uploadImage } from "@/utilis/UploadImage";
 
 interface Mode {
   _id: string;
   title: string;
   image?: string;
+  imageUrl?: string
+  fileKey?: string;
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function ModesPage() {
   const { courseId, topicId, typeId } = useParams<{ courseId: string; topicId: string; typeId: string }>();
@@ -26,39 +30,51 @@ export default function ModesPage() {
 
   const fetchModes = async () => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.get(
-        `${BASE_URL}/admin/courses/${courseId}/topics/${topicId}/types/${typeId}/modes`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setModes(res.data.modes);
+      setLoading(true)
+      const token = localStorage.getItem("accessToken")
+      if (!token) return toast({ title: "Not authenticated", variant: "destructive" })
+
+      const decoded = JSON.parse(atob(token.split(".")[1]))
+      const role = decoded.role
+      const api = axiosByRole(role, token)
+
+      const res = await api.get(`/courses/${courseId}/topics/${topicId}/types/${typeId}/modes`)
+      setModes(res.data.modes)
     } catch (err) {
-      console.error(err);
-      toast({ title: "Failed to fetch modes", variant: "destructive" });
+      console.error(err)
+      toast({ title: "Failed to fetch modes", variant: "destructive" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleImageUpload = async (modeId: string, file: File) => {
     try {
-      const formData = new FormData();
-      formData.append("image", file);
+      const token = localStorage.getItem("accessToken")
+      if (!token) return toast({ title: "Not authenticated", variant: "destructive" })
 
-      const token = localStorage.getItem("accessToken");
-      await axios.patch(
-        `${BASE_URL}/admin/courses/${courseId}/topics/${topicId}/types/${typeId}/modes/${modeId}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
-      );
+      const decoded = JSON.parse(atob(token.split(".")[1]))
+      const role = decoded.role
+      const api = axiosByRole(role, token)
 
-      toast({ title: "Image uploaded" });
-      fetchModes();
+      const { fileUrl, fileKey } = await uploadImage(file)
+
+      await api.patch(`/courses/${courseId}/topics/${topicId}/types/${typeId}/modes/${modeId}`, {
+        image: fileUrl,
+        fileKey,
+      })
+
+      toast({ title: "Image uploaded successfully" })
+      fetchModes()
     } catch (err: any) {
-      toast({ title: "Error", description: err.response?.data?.message || "Failed to upload image", variant: "destructive" });
+      console.error("Image upload failed:", err)
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to upload image",
+        variant: "destructive",
+      })
     }
-  };
+  }
 
   if (loading) return <p>Loading...</p>;
 
@@ -77,9 +93,9 @@ export default function ModesPage() {
             <TableRow key={m._id}>
               <TableCell>{index + 1}</TableCell>
               <TableCell>
-                {m.image ? (
+                {m.imageUrl  ? (
                   <img
-                    src={`${BASE_URL}${m.image}`}
+                    src={`${m.imageUrl }`}
                     alt={m.title}
                     className="w-12 h-12 object-cover rounded cursor-pointer"
                     onClick={() => document.getElementById(`upload-${m._id}`)?.click()}
