@@ -161,7 +161,6 @@ export default function CoursesPage() {
                 fileKey: finalFileKey,
             };
 
-
             const res = await api.post(`/createCourse`, requestBody);
 
             const newCourse = res.data.course;

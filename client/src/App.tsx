@@ -38,6 +38,7 @@ import React from 'react';
 import axios from "axios";
 import { Link, useLocation,useParams  } from 'react-router-dom';
 import StudentDashboard from "./pages/StudentDashboard";
+import PositionsPage from "./pages/PositionsPage";
 
 function Layout({ children, title, description }: { children: React.ReactNode; title?: string; description?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -272,6 +273,11 @@ function Router() {
       <Route path="/documentation" element={
         <Layout title="Documentation" description="Installation guide, component examples, and project information">
           <Documentation />
+        </Layout>
+      } />
+      <Route path="/positions/:processId" element={
+        <Layout title="position" description="get position">
+          <PositionsPage />
         </Layout>
       } />
 

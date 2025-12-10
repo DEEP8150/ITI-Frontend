@@ -484,6 +484,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { uploadImage } from "@/utilis/UploadImage";
+import { useNavigate } from "react-router-dom";
+
 
 interface Process {
   _id: string;
@@ -513,6 +515,9 @@ const ProcessesPage = () => {
   const [createImagePreview, setCreateImagePreview] = useState<string | null>(null);
   const [updateImagePreview, setUpdateImagePreview] = useState<string | null>(null);
 
+  const navigate = useNavigate();
+
+
   const createForm = useForm<FormValues>({
     defaultValues: { title: "", image: null },
   });
@@ -520,6 +525,8 @@ const ProcessesPage = () => {
   const updateForm = useForm<FormValues>({
     defaultValues: { title: "", image: null },
   });
+
+
 
   const fetchFullHierarchy = async () => {
     if (!topicId) return;
@@ -764,10 +771,10 @@ const ProcessesPage = () => {
         )}
       </div>
 
-      {/* Process Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {processes.map((proc) => (
-          <Card key={proc._id} className="shadow hover:shadow-lg transition relative">
+          // onClick={() => navigate(`/positions/${proc._id}`)}
+          <Card key={proc._id} className="shadow hover:shadow-lg transition relative" >
             <CardHeader className="p-3">
               <CardTitle className="text-lg font-semibold">{proc.title}</CardTitle>
             </CardHeader>

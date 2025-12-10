@@ -18,10 +18,13 @@ type ProcessSummary = {
   topicName: string;
   totalAttempts: number;
   latestAttempt?: string;
+  positionId: string;
+  positionName: string
 };
 
 type AttemptData = {
   _id: string;
+  position:{title:string};
   process: { title: string };
   attemptNumber: number;
   createdAt: string;
@@ -62,6 +65,7 @@ export default function CourseStudentsPage() {
     null
   );
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
+  const [selectedPosition , setSelectedPosition] = useState<string | null>(null)
 
   const [performanceSummary, setPerformanceSummary] = useState<
     ProcessSummary[]
@@ -91,7 +95,7 @@ export default function CourseStudentsPage() {
   const fetchTopicsAndTypes = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const api = axiosByRole("admin", token!); // or "instructor" if that route exists
+      const api = axiosByRole("admin", token!); 
 
       // Fetch topics for this course
       const topicsRes = await api.get(`/courses/${courseId}/topics`);
@@ -185,6 +189,7 @@ export default function CourseStudentsPage() {
 
   try {
     setLoadingPerformance(true);
+    setPerformanceSummary([]);
     const token = localStorage.getItem("accessToken");
     const decoded = JSON.parse(atob(token!.split(".")[1]));
     const role = decoded.role || "student";
@@ -199,11 +204,11 @@ export default function CourseStudentsPage() {
     setPerformanceSummary(res.data || []);
   } catch (err) {
     console.error("Error fetching student summary:", err);
-    toast({
-      title: "Error loading data",
-      description: "Could not fetch process summary.",
-      variant: "destructive",
-    });
+    // toast({
+    //   title: "Error loading data",
+    //   description: "Could not fetch process summary.",
+    //   variant: "destructive",
+    // });
   } finally {
     setLoadingPerformance(false);
   }
@@ -212,8 +217,8 @@ export default function CourseStudentsPage() {
   // -------------------------------
   // Fetch attempts by process
   // -------------------------------
-  const fetchAttemptsByProcess = async (studentId: string, processId: string) => {
-    if (!studentId || !processId) return console.error("Missing studentId or processId");
+  const fetchAttemptsByProcess = async (studentId: string, positionId: string) => {
+    if (!studentId || !positionId) return console.error("Missing studentId or processId");
 
     try {
       setLoadingPerformance(true);
@@ -228,7 +233,7 @@ export default function CourseStudentsPage() {
 
       const api = axiosByRole(role, token!);
       const res = await api.get(
-        `/performance/student/${studentId}/process/${processId}`
+        `/performance/student/${studentId}/position/${positionId}`
       );
 
       setAttemptsData(res.data || []);
@@ -450,16 +455,18 @@ export default function CourseStudentsPage() {
                       <th className="px-4 py-2 text-left">Sr.No.</th>
                       <th className="px-4 py-2 text-left">Topic</th>
                       <th className="px-4 py-2 text-left">Process Name</th>
+                      <th className="px-4 py-2 text-left">Position Name</th>
                       <th className="px-4 py-2 text-left">Total Attempts</th>
                       <th className="px-4 py-2 text-left">Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {performanceSummary.map((p, i) => (
-                      <tr key={p.processId} className="border-t">
+                      <tr key={p.positionId} className="border-t">
                         <td className="px-4 py-2">{i + 1}</td>
                         <td className="px-4 py-2">{p.topicName}</td>
                         <td className="px-4 py-2">{p.processName}</td>
+                        <td className="px-4 py-2">{p.positionName}</td>
                         <td className="px-4 py-2">{p.totalAttempts}</td>
                         <td className="px-4 py-2">
                           <Button
@@ -467,8 +474,9 @@ export default function CourseStudentsPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedProcess(p.processId);
+                              setSelectedPosition(p.positionId);
                               setAttemptsOpen(true);
-                              fetchAttemptsByProcess(selectedStudent!.id, p.processId);
+                              fetchAttemptsByProcess(selectedStudent!.id, p.positionId);
                             }}
                           >
                             View
@@ -490,7 +498,6 @@ export default function CourseStudentsPage() {
       {/* --- Attempts Dialog --- */}
       <Dialog open={attemptsOpen} onOpenChange={setAttemptsOpen}>
         <DialogContent className="w-[95vw] sm:max-w-6xl h-[80vh] flex flex-col p-4 sm:p-6 rounded-lg overflow-hidden">
-          {/* Header */}
           <DialogHeader className="flex-shrink-0 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-6">
               <h3 className="text-sm sm:text-base text-gray-600">
@@ -502,6 +509,11 @@ export default function CourseStudentsPage() {
                 </span>
               </h3>
 
+              <h3 className="text-base text-gray-600">
+                Course:{" "}
+                <span className="font-semibold text-gray-800">{courseTitle || ""}</span>
+              </h3>
+
               <h3 className="text-sm sm:text-base text-gray-600">
                 Process:{" "}
                 <span className="font-semibold text-gray-800">
@@ -510,13 +522,16 @@ export default function CourseStudentsPage() {
                 </span>
               </h3>
 
-              <h3 className="text-base text-gray-600">
-                Course:{" "}
-                <span className="font-semibold text-gray-800">{courseTitle || ""}</span>
+              <h3 className="text-sm sm:text-base text-gray-600">
+                Position:{" "}
+                <span className="font-semibold text-gray-800">
+                  {performanceSummary.find((p) => p.positionId === selectedPosition)
+                    ?.positionName || "Attempts"}
+                </span>
               </h3>
+
             </div>
 
-            {/* Compact calendar icon with popover */}
             <Popover
               content={
                 <div
