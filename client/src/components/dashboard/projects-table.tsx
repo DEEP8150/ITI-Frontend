@@ -1,117 +1,195 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  MoreVertical, 
-  Palette, 
-  TrendingUp, 
-  Bug, 
-  Smartphone, 
-  Tag, 
-  ShoppingBag 
-} from "lucide-react";
-import { projectsData } from "@/lib/data";
+import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { axiosByRole } from "@/utilis/apiByRole";
+import { jwtDecode } from "jwt-decode";
 
-const getProjectIcon = (iconName: string) => {
-  const iconProps = { className: "w-4 h-4" };
-  
-  switch (iconName) {
-    case 'palette':
-      return <Palette {...iconProps} />;
-    case 'chart-line':
-      return <TrendingUp {...iconProps} />;
-    case 'bug':
-      return <Bug {...iconProps} />;
-    case 'smartphone':
-      return <Smartphone {...iconProps} />;
-    case 'tag':
-      return <Tag {...iconProps} />;
-    case 'shopping-bag':
-      return <ShoppingBag {...iconProps} />;
-    default:
-      return <Palette {...iconProps} />;
-  }
-};
+interface Course {
+  _id: string;
+  title: string;
+  completion?: number;
+  icon?: string;
+  iconColor?: string;
+}
+
+interface Topic {
+  _id: string;
+  title: string;
+}
+
+interface Process {
+  _id: string;
+  title: string;
+}
+
+interface DecodedToken {
+  role?: string;
+  [key: string]: any;
+}
 
 export function ProjectsTable() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [topicsMap, setTopicsMap] = useState<Record<string, Topic[]>>({});
+  const [processesMap, setProcessesMap] = useState<Record<string, Process[]>>({});
+  const [selectedTopics, setSelectedTopics] = useState<Record<string, string>>({});
+  const [selectedProcesses, setSelectedProcesses] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) return null;
+  const decoded = jwtDecode<DecodedToken>(token);
+  const role = decoded?.role;
+  const api = axiosByRole(role!, token);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const res = await api.get("/courses");
+      setCourses(res.data.courses || []);
+    } catch (err) {
+      console.error("Error fetching courses", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTopics = async (courseId: string) => {
+    if (topicsMap[courseId]) return; // cache
+    try {
+      const res = await api.get(`/courses/${courseId}/topics`);
+      setTopicsMap((prev) => ({ ...prev, [courseId]: res.data.topics || [] }));
+    } catch (err) {
+      console.error("Error fetching topics", err);
+    }
+  };
+
+  const fetchProcesses = async (topicId: string) => {
+    if (processesMap[topicId]) return;
+    try {
+      const res = await api.get(`/courses/:courseId/topics/:topicId/types/:typeId/modes/:modeId/processes`);
+      setProcessesMap((prev) => ({ ...prev, [topicId]: res.data.processes || [] }));
+    } catch (err) {
+      console.error("Error fetching processes", err);
+    }
+  };
+
+  if (loading) return <p className="p-4">Loading courses...</p>;
+
   return (
     <Card className="border-gray-200">
       <CardHeader className="border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold text-gray-900">Courses</CardTitle>
-            {/* <div className="text-sm text-gray-500 flex items-center mt-1">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2" />
-              30 done this month
-            </div> */}
-          </div>
+          <CardTitle className="text-lg font-semibold text-gray-900">Courses</CardTitle>
           <Button variant="ghost" size="sm">
             <MoreVertical className="w-4 h-4 text-gray-400" />
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  courses
+                  Course
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  Topic Name
+                  Topic
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
                   Process
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">
-                  COMPLETION
+                  Completion
                 </th>
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
-              {projectsData.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center mr-3",
-                        project.iconColor
-                      )}>
-                        {getProjectIcon(project.icon)}
+              {courses.map((course) => {
+                const selectedTopicId = selectedTopics[course._id] || "";
+                const selectedProcessId = selectedProcesses[course._id] || "";
+                const topics = topicsMap[course._id] || [];
+                const processes = selectedTopicId
+                  ? processesMap[selectedTopicId] || []
+                  : [];
+
+                return (
+                  <tr key={course._id} className="hover:bg-gray-50">
+                    {/* Course */}
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                      {course.title}
+                    </td>
+
+                    {/* Topic Dropdown */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                        value={selectedTopicId}
+                        onChange={(e) => {
+                          const topicId = e.target.value;
+                          setSelectedTopics((prev) => ({
+                            ...prev,
+                            [course._id]: topicId,
+                          }));
+                          setSelectedProcesses((prev) => ({
+                            ...prev,
+                            [course._id]: "",
+                          }));
+                          fetchProcesses(topicId);
+                        }}
+                        onFocus={() => fetchTopics(course._id)}
+                      >
+                        <option value="">Select Topic</option>
+                        {topics.map((topic) => (
+                          <option key={topic._id} value={topic._id}>
+                            {topic.title}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* Process Dropdown */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                        value={selectedProcessId}
+                        onChange={(e) =>
+                          setSelectedProcesses((prev) => ({
+                            ...prev,
+                            [course._id]: e.target.value,
+                          }))
+                        }
+                        disabled={!selectedTopicId}
+                      >
+                        <option value="">Select Process</option>
+                        {processes.map((proc) => (
+                          <option key={proc._id} value={proc._id}>
+                            {proc.title}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* Completion */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="text-sm text-gray-600 mr-2">
+                          {course.completion ?? 0}%
+                        </span>
+                        <Progress value={course.completion ?? 0} className="w-32 h-2" />
                       </div>
-                      <span className="font-normal text-gray-900">{project.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex -space-x-2">
-                      {project.members.map((member) => (
-                        <Avatar key={member.id} className="w-8 h-8 border-2 border-white">
-                          <AvatarImage src={member.avatar} alt={member.name} />
-                          <AvatarFallback className={cn("text-white text-xs", member.color)}>
-                            {member.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {project.budget}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-600 mr-2">{project.completion}%</span>
-                      <Progress 
-                        value={project.completion} 
-                        className="w-32 h-2"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

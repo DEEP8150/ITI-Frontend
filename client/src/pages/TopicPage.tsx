@@ -1,4 +1,3 @@
-// src/pages/TopicPage.tsx
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
@@ -13,7 +12,8 @@ import { uploadImage } from "@/utilis/UploadImage"
 import { axiosByRole } from "@/utilis/apiByRole"
 import { Card } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreVertical } from "lucide-react"
+import { MoreVertical, Plus } from "lucide-react"
+import AppLayout from "@/components/layout/AppLayout";
 
 interface Topic {
   _id: string
@@ -269,13 +269,13 @@ export default function TopicPage() {
       }
 
       const requestBody: any = {
-                title: data.title,
-                description: data.description,
-                fileKey: finalFileKey,
-            };
+        title: data.title,
+        description: data.description,
+        fileKey: finalFileKey,
+      };
 
       // Send only json body
-      await api.patch(`/courses/${courseId}/topics/${selectedTopic._id}`,requestBody);
+      await api.patch(`/courses/${courseId}/topics/${selectedTopic._id}`, requestBody);
 
       toast({ title: "Topic updated" });
       setUpdateDialogOpen(false);
@@ -343,11 +343,17 @@ export default function TopicPage() {
   if (loading) return <p>Loading...</p>
 
   return (
-    <div className="p-4">
-      {role !== "student" && (
-        <div className="flex justify-end mb-4">
+    <AppLayout
+      title="Topics"
+      description="Manage topics for this course"
+      action={
+        role !== "student" && (
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button>Create New Topic</Button></DialogTrigger>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Create New Topic
+              </Button>
+            </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader><DialogTitle>Create New Topic</DialogTitle></DialogHeader>
               <Form {...form}>
@@ -381,11 +387,12 @@ export default function TopicPage() {
               </Form>
             </DialogContent>
           </Dialog>
-        </div>
-      )}
+        )
+      }
+    >
+      <div className="p-1">
 
-
-      {/* <Table>
+        {/* <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Sr. No.</TableHead>
@@ -453,170 +460,171 @@ export default function TopicPage() {
         </TableBody>
       </Table> */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
-        {topics && topics.length > 0 ? (
-          topics.map((t) => (
-            <Card
-              key={t._id}
-              className="cursor-pointer hover:shadow-lg transition"
-              // onClick={() => navigate(`/courses/${courseId}/topics/${t._id}/types`)}
-              onClick={() => navigate(`/courses/${courseId}/topics/${t._id}/details`)}
-            >
-              <div className="p-4">
-                {/* --- Image --- */}
-                <div className="relative">
-                  <img
-                    src={t.imageUrl}
-                    alt={t.title}
-                    className="w-full h-60 object-cover rounded-md mb-4"
-                  />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
+          {topics && topics.length > 0 ? (
+            topics.map((t) => (
+              <Card
+                key={t._id}
+                className="cursor-pointer hover:shadow-lg transition"
+                // onClick={() => navigate(`/courses/${courseId}/topics/${t._id}/types`)}
+                onClick={() => navigate(`/courses/${courseId}/topics/${t._id}/details`)}
+              >
+                <div className="p-4">
 
-                </div>
-                <h2 className="text-lg font-semibold mb-2">{t.title}</h2>
+                  <div className="relative">
+                    <img
+                      src={t.imageUrl || ""}
+                      alt={t.title}
+                      className="w-full h-60 object-cover rounded-md mb-4"
+                    />
 
-                {role !== "student" && (
-                  <div className="mt-3 flex justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 p-0 rounded-full hover:bg-gray-100"
-                          onClick={(e) => e.stopPropagation()} // prevent card navigation
-                        >
-                          <MoreVertical className="h-4 w-4 text-gray-600" />
-                        </Button>
-                      </DropdownMenuTrigger>
-
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUpdateClick(t);
-                          }}
-                        >
-                          Update
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(t);
-                          }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
-                )}
-              </div>
-            </Card>
-          ))
-        ) : (
-          <p className="text-center text-gray-500 col-span-full">No topics found.</p>
-        )}
-      </div>
+                  <h2 className="text-lg font-semibold mb-2">{t.title}</h2>
 
-
-      {/* ------------------ Update Dialog ------------------ */}
-      {role !== "student" && (
-        <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Update Topic</DialogTitle>
-            </DialogHeader>
-            <Form {...updateForm}>
-              <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
-                <FormField control={updateForm.control} name="title" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={updateForm.control} name="description" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField
-                  control={updateForm.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Topic Image</FormLabel>
-                      <div className="flex items-center gap-4">
-                        {updateImagePreview ? (
-                          <img
-                            src={updateImagePreview}
-                            alt="Course"
-                            className="w-24 h-24 object-cover rounded cursor-pointer border"
-                            onClick={() => document.getElementById("updateImageInput")?.click()}
-                          />
-                        ) : (
-                          <div
-                            className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
-                            onClick={() => document.getElementById("updateImageInput")?.click()}
-                          >
-                            Upload
-                          </div>
-                        )}
-                        {updateImagePreview && (
+                  {role !== "student" && (
+                    <div className="mt-3 flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setUpdateImagePreview(null)
-                              updateForm.setValue("image", null)
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 p-0 rounded-full hover:bg-gray-100"
+                            onClick={(e) => e.stopPropagation()} // prevent card navigation
+                          >
+                            <MoreVertical className="h-4 w-4 text-gray-600" />
+                          </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateClick(t);
                             }}
                           >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        id="updateImageInput"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            setUpdateImagePreview(URL.createObjectURL(file))
-                            updateForm.setValue("image", file)
-                          }
-                        }}
-                      />
+                            Update
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(t);
+                            }}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))
+          ) : (
+            <p className="text-center text-gray-500 col-span-full">No topics found.</p>
+          )}
+        </div>
+
+
+        {/* ------------------ Update Dialog ------------------ */}
+        {role !== "student" && (
+          <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Update Topic</DialogTitle>
+              </DialogHeader>
+              <Form {...updateForm}>
+                <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
+                  <FormField control={updateForm.control} name="title" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-                <div className="flex justify-end gap-2">
-                  <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                  <Button type="submit">Update</Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      )}
+                  )} />
+                  <FormField control={updateForm.control} name="description" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField
+                    control={updateForm.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Topic Image</FormLabel>
+                        <div className="flex items-center gap-4">
+                          {updateImagePreview ? (
+                            <img
+                              src={updateImagePreview}
+                              alt="Course"
+                              className="w-24 h-24 object-cover rounded cursor-pointer border"
+                              onClick={() => document.getElementById("updateImageInput")?.click()}
+                            />
+                          ) : (
+                            <div
+                              className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
+                              onClick={() => document.getElementById("updateImageInput")?.click()}
+                            >
+                              Upload
+                            </div>
+                          )}
+                          {updateImagePreview && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setUpdateImagePreview(null)
+                                updateForm.setValue("image", null)
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          id="updateImageInput"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setUpdateImagePreview(URL.createObjectURL(file))
+                              updateForm.setValue("image", file)
+                            }
+                          }}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                    <Button type="submit">Update</Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        )}
 
-      {/* ------------------ Delete Dialog ------------------ */}
-      {role !== "student" && (
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader><DialogTitle>Delete Topic</DialogTitle></DialogHeader>
-            <p>Are you sure you want to delete <strong>{selectedTopic?.title}</strong>?</p>
-            <div className="flex justify-end gap-2 mt-4">
-              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-              <Button variant="destructive" onClick={onDeleteConfirm}>Confirm</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+        {/* ------------------ Delete Dialog ------------------ */}
+        {role !== "student" && (
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader><DialogTitle>Delete Topic</DialogTitle></DialogHeader>
+              <p>Are you sure you want to delete <strong>{selectedTopic?.title}</strong>?</p>
+              <div className="flex justify-end gap-2 mt-4">
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button variant="destructive" onClick={onDeleteConfirm}>Confirm</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    </AppLayout >
   )
 }

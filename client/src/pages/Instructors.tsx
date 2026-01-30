@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import AppLayout from "@/components/layout/AppLayout";
 
 import {
   Table,
@@ -58,9 +59,10 @@ export default function InstructorsPage() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="p-4">
-      {/* Top Bar with Add Button */}
-      <div className="flex justify-end mb-4">
+    <AppLayout
+      title="Instructors"
+      // description="List of all instructors"
+      action={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>Add Instructor</Button>
@@ -80,27 +82,31 @@ export default function InstructorsPage() {
             />
           </DialogContent>
         </Dialog>
-      </div>
-
-      {/* Instructors Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Sr. No.</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {instructors.map((inst, index) => (
-            <TableRow key={inst._id}>
-                <TableCell>{index + 1}</TableCell>
-              <TableCell>{inst.firstName} {inst.lastName}</TableCell>
-              <TableCell>{inst.email}</TableCell>
+      }
+    >
+      <div className="p-4">
+        {/* Instructors Table */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Sr. No.</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {instructors.map((inst, index) => (
+              <TableRow key={inst._id}>
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>
+                  {inst.firstName} {inst.lastName}
+                </TableCell>
+                <TableCell>{inst.email}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </AppLayout>
   );
 }

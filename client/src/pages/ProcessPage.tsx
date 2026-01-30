@@ -485,6 +485,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, } from 
 import { useForm } from "react-hook-form";
 import { uploadImage } from "@/utilis/UploadImage";
 import { useNavigate } from "react-router-dom";
+import AppLayout from "@/components/layout/AppLayout";
+
 
 
 interface Process {
@@ -668,12 +670,11 @@ const ProcessesPage = () => {
   if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{topic?.title || "Topic Details"}</h1>
-
-        {role !== "student" && (
+    <AppLayout
+      title={topic?.title || "Topic Details"}
+      description="Manage processes for this topic"
+      action={
+        role !== "student" && (
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -768,164 +769,166 @@ const ProcessesPage = () => {
               </Form>
             </DialogContent>
           </Dialog>
-        )}
-      </div>
+        )
+      }
+    >
+      <div className="p-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {processes.map((proc) => (
+            // onClick={() => navigate(`/positions/${proc._id}`)}
+            <Card key={proc._id} className="shadow hover:shadow-lg transition relative" >
+              <CardHeader className="p-3">
+                <CardTitle className="text-lg font-semibold">{proc.title}</CardTitle>
+              </CardHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {processes.map((proc) => (
-          // onClick={() => navigate(`/positions/${proc._id}`)}
-          <Card key={proc._id} className="shadow hover:shadow-lg transition relative" >
-            <CardHeader className="p-3">
-              <CardTitle className="text-lg font-semibold">{proc.title}</CardTitle>
-            </CardHeader>
-
-            <CardContent className="p-4 pb-16">
-              <img
-                src={proc.image}
-                alt={proc.title}
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <div className="flex flex-wrap gap-2 mb-2">
-                {proc.typeTitles.map((type) => (
-                  <>
-                    <Badge key={type} variant="secondary">
-                      {type}
-                    </Badge>
-                    <Badge key={type} variant="secondary">
-                      {type}
-                    </Badge>
-                    <Badge key={type} variant="secondary">
-                      {type}
-                    </Badge>
-                  </>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {proc.modeTitles.map((mode) => (
-                  <Badge key={mode} variant="outline">
-                    {mode}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Three dots bottom-right */}
-              {role !== "student" && (
-                <div className="absolute bottom-3 right-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-5 h-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleUpdateClick(proc)}>
-                        Update
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(proc)}
-                        className="text-red-600"
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+              <CardContent className="p-4 pb-16">
+                <img
+                  src={proc.image}
+                  alt={proc.title}
+                  className="w-full h-48 object-cover rounded-md mb-4"
+                />
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {proc.typeTitles.map((type) => (
+                    <>
+                      <Badge key={type} variant="secondary">
+                        {type}
+                      </Badge>
+                      <Badge key={type} variant="secondary">
+                        {type}
+                      </Badge>
+                      <Badge key={type} variant="secondary">
+                        {type}
+                      </Badge>
+                    </>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="flex flex-wrap gap-2">
+                  {proc.modeTitles.map((mode) => (
+                    <Badge key={mode} variant="outline">
+                      {mode}
+                    </Badge>
+                  ))}
+                </div>
 
-      {/* Update Dialog */}
-      <Dialog open={openUpdate} onOpenChange={setOpenUpdate}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Process</DialogTitle>
-          </DialogHeader>
-          <Form {...updateForm}>
-            <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
-              <FormField
-                control={updateForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter process title" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Update Image Upload (same style) */}
-              <FormField
-                control={updateForm.control}
-                name="image"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Process Image</FormLabel>
-                    <div className="flex items-center gap-4">
-                      {updateImagePreview ? (
-                        <img
-                          src={updateImagePreview}
-                          alt="Preview"
-                          className="w-24 h-24 object-cover rounded cursor-pointer border"
-                          onClick={() =>
-                            document.getElementById("updateImageInput")?.click()
-                          }
-                        />
-                      ) : (
-                        <div
-                          className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
-                          onClick={() =>
-                            document.getElementById("updateImageInput")?.click()
-                          }
-                        >
-                          Upload
-                        </div>
-                      )}
-                      {updateImagePreview && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            setUpdateImagePreview(null);
-                            updateForm.setValue("image", null);
-                          }}
-                        >
-                          Remove
+                {/* Three dots bottom-right */}
+                {role !== "student" && (
+                  <div className="absolute bottom-3 right-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-5 h-5" />
                         </Button>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      id="updateImageInput"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setUpdateImagePreview(URL.createObjectURL(file));
-                          updateForm.setValue("image", file);
-                        }
-                      }}
-                    />
-                    <FormMessage />
-                  </FormItem>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleUpdateClick(proc)}>
+                          Update
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(proc)}
+                          className="text-red-600"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
-              />
-              <div className="flex justify-end gap-2">
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Update</Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Update Dialog */}
+        <Dialog open={openUpdate} onOpenChange={setOpenUpdate}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Process</DialogTitle>
+            </DialogHeader>
+            <Form {...updateForm}>
+              <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-4">
+                <FormField
+                  control={updateForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter process title" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Update Image Upload (same style) */}
+                <FormField
+                  control={updateForm.control}
+                  name="image"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Process Image</FormLabel>
+                      <div className="flex items-center gap-4">
+                        {updateImagePreview ? (
+                          <img
+                            src={updateImagePreview}
+                            alt="Preview"
+                            className="w-24 h-24 object-cover rounded cursor-pointer border"
+                            onClick={() =>
+                              document.getElementById("updateImageInput")?.click()
+                            }
+                          />
+                        ) : (
+                          <div
+                            className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded cursor-pointer border text-gray-400"
+                            onClick={() =>
+                              document.getElementById("updateImageInput")?.click()
+                            }
+                          >
+                            Upload
+                          </div>
+                        )}
+                        {updateImagePreview && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setUpdateImagePreview(null);
+                              updateForm.setValue("image", null);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        id="updateImageInput"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUpdateImagePreview(URL.createObjectURL(file));
+                            updateForm.setValue("image", file);
+                          }
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit">Update</Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AppLayout>
   );
 };
 

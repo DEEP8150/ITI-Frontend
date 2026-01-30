@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogTr
 import CreateUserPage from "./AddNewUser";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import AppLayout from "@/components/layout/AppLayout";
 
 type User = {
     _id: string;
@@ -45,12 +46,13 @@ export default function StudentsPage() {
     if (loading) return <p>Loading...</p>;
 
     return (
-        <div className="">
-            {/* Top Bar */}
-            <div className="flex justify-end ">
+        <AppLayout
+            title="Students"
+            // description="List of all students"
+            action={
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
-                        <Button>Add Student</Button>
+                        <Button >Add Student</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
@@ -61,36 +63,37 @@ export default function StudentsPage() {
                             onSuccess={fetchStudents}
                         />
                     </DialogContent>
-
                 </Dialog>
-            </div>
-
-            {/* Students Table */}
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Sr. No.</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {students.map((student, index) => (
-                        <TableRow key={student._id}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>
-                                <button
-                                    onClick={() => navigate(`/students/${student._id}`, { state: student })}
-                                    className="text-blue-600 hover:underline font-medium cursor-pointer"
-                                >
-                                    {student.firstName} {student.lastName}
-                                </button>
-                            </TableCell>
-                            <TableCell>{student.email}</TableCell>
+            }
+        >
+            <div className="">
+                {/* Students Table */}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Sr. No.</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                    </TableHeader>
+                    <TableBody>
+                        {students.map((student, index) => (
+                            <TableRow key={student._id}>
+                                <TableCell>{index + 1}</TableCell>
+                                <TableCell>
+                                    <button
+                                        onClick={() => navigate(`/students/${student._id}`, { state: student })}
+                                        className="text-blue-600 hover:underline font-medium cursor-pointer"
+                                    >
+                                        {student.firstName} {student.lastName}
+                                    </button>
+                                </TableCell>
+                                <TableCell>{student.email}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </AppLayout>
     );
 }
